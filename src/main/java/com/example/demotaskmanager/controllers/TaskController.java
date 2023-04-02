@@ -1,9 +1,15 @@
 package com.example.demotaskmanager.controllers;
 
+import com.example.demotaskmanager.dtos.ErrorResponse;
 import com.example.demotaskmanager.entities.Task;
 import com.example.demotaskmanager.services.TaskService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -17,32 +23,37 @@ public class TaskController{
 
     private TaskService taskService;
     @GetMapping("/tasks")
-    public List<Task> getTask(){
-        return taskService.getTasks();
+    ResponseEntity<List<Task>> getTask(){
+        return ResponseEntity.ok(taskService.getTasks());
     }
     @PostMapping("/tasks")
-    Task createTask(@RequestBody Task task){
+    ResponseEntity<Task> createTask(@RequestBody Task task){
         var newTask = taskService.createTask(task.getTitle(), task.getDescription(), task.getDueDate());
-        return newTask;
+        return ResponseEntity.created(URI.create("/tasks/" + newTask.getId())).body(newTask);
     }
 
     @GetMapping("/tasks/{id}")
-    Task getTask(@PathVariable("id") Integer id){
-        return taskService.getTaskById(id);
+    ResponseEntity<Task> getTask(@PathVariable("id") Integer id){
+        return ResponseEntity.ok(taskService.getTaskById(id));
     }
 
     @DeleteMapping("/tasks/{id}")
-    Task deleteTask(@PathVariable("id") Integer id){
-        return taskService.deleteTask(id);
+    ResponseEntity<Task> deleteTask(@PathVariable("id") Integer id){
+        return ResponseEntity.accepted().body(taskService.deleteTask(id));
     }
     @PatchMapping("/tasks/{id}")
-    Task updateTask(@PathVariable("id") Integer id, @RequestBody Task task){
+    ResponseEntity<Task> updateTask(@PathVariable("id") Integer id, @RequestBody Task task){
         var updateTask = taskService.updateTask(
                 id,
                 task.getTitle(),
                 task.getDescription(),
-                task.getDueDate().toString());
+                task.getDueDate());
 
-        return updateTask;
+        return ResponseEntity.accepted().body(updateTask);
+    }
+
+    @ExceptionHandler(TaskService.TaskNotFoundExeption.class)
+    ResponseEntity<ErrorResponse> handleErrors(TaskService.TaskNotFoundExeption e){
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.NOT_FOUND);
     }
 }
